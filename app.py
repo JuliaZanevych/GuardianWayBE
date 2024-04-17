@@ -1,7 +1,10 @@
 from flask import Flask
 from flask_jwt_extended import JWTManager, jwt_required
+from flask_socketio import SocketIO
 
-from app import auth_blueprint, blacklist
+from app.auth import auth_blueprint, blacklist
+from app.data_processing import init_data_processing_hub
+
 from resources.db import db
 
 
@@ -9,7 +12,7 @@ def create_app():
     app = Flask(__name__)
 
     app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Change this!
-    app.config['SQLALCHEMY_DATABASE_URI'] = '******************'
+    app.config['SQLALCHEMY_DATABASE_URI'] = '*******'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_BLACKLIST_ENABLED'] = True
     app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
@@ -22,13 +25,16 @@ def create_app():
         jti = jwt_payload["jti"]
         return jti in blacklist
 
+    socket_io = SocketIO(app)
+    init_data_processing_hub(socket_io)
+
     app.register_blueprint(auth_blueprint)
 
-    return app
+    return app, socket_io
 
 
 if __name__ == "__main__":
-    app = create_app()
+    app, socketio = create_app()
 
 
     @app.route('/test', methods=['get'])
@@ -37,4 +43,4 @@ if __name__ == "__main__":
         return '123'
 
 
-    app.run(debug=True)
+    socketio.run(app, debug=True, host='0.0.0.0')
