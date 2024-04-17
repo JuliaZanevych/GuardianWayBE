@@ -36,8 +36,8 @@ def login():
     data = request.get_json()
     user = User.query.filter_by(email=data['email']).first()
     if user and user.check_password(data['password']):
-        access_token = create_access_token(identity=user.email, expires_delta=timedelta(seconds=30))
-        refresh_token = create_refresh_token(identity=user.email, expires_delta=timedelta(seconds=200))
+        access_token = create_access_token(identity=user.email, expires_delta=timedelta(minutes=10))
+        refresh_token = create_refresh_token(identity=user.email, expires_delta=timedelta(hours=36))
         return jsonify(access_token=access_token, refresh_token=refresh_token), 200
     else:
         return jsonify({'message': 'Invalid email or password'}), 401
