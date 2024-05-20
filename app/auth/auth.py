@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt, \
+    set_access_cookies, set_refresh_cookies, unset_jwt_cookies
 from werkzeug.security import generate_password_hash
 
 from datetime import timedelta
@@ -19,16 +20,16 @@ def register():
         try:
             user = User(
                 email=data['email'],
-                password=generate_password_hash(data['password'])
+                password=generate_password_hash(data['password']),
+                username=data['username']
             )
             db.session.add(user)
             db.session.commit()
             return jsonify({'message': 'User registered successfully!'}), 200
         except Exception as e:
-            print(e)
             return jsonify({'message': 'An error occurred during registration.'}), 500
     else:
-        return jsonify({'message': 'User already exists!'}), 400
+        return 'User already exists!', 400
 
 
 @auth_blueprint.route('/login', methods=['POST'])
@@ -36,11 +37,11 @@ def login():
     data = request.get_json()
     user = User.query.filter_by(email=data['email']).first()
     if user and user.check_password(data['password']):
-        access_token = create_access_token(identity=user.email, expires_delta=timedelta(minutes=10))
-        refresh_token = create_refresh_token(identity=user.email, expires_delta=timedelta(hours=36))
+        access_token = create_access_token(identity=user.id, expires_delta=timedelta(hours=2))
+        refresh_token = create_refresh_token(identity=user.id, expires_delta=timedelta(hours=36))
         return jsonify(access_token=access_token, refresh_token=refresh_token), 200
     else:
-        return jsonify({'message': 'Invalid email or password'}), 401
+        return 'Invalid email or password', 401
 
 
 @auth_blueprint.route('/logout', methods=['POST'])
@@ -48,14 +49,15 @@ def login():
 def logout():
     jti = get_jwt()["jti"]
     blacklist.add(jti)
-    return jsonify({"msg": "Successfully logged out"}), 200
+    resp = jsonify({'logout': True})
+    unset_jwt_cookies(resp)
+    return resp, 200
 
 
 @auth_blueprint.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
     identity = get_jwt_identity()
-    access_token = create_access_token(identity=identity, expires_delta=timedelta(seconds=36))
-    # jti = get_jwt()["jti"]
-    # blacklist.add(jti)
-    return jsonify(access_token=access_token)
+    access_token = create_access_token(identity=identity, expires_delta=timedelta(hours=2))
+    resp = jsonify({'access_token': access_token})
+    return resp, 200
