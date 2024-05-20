@@ -16,6 +16,7 @@ CREATE TABLE Detection (
   id SERIAL PRIMARY KEY,
   object_id INTEGER NOT NULL REFERENCES object(id),
   location_id INTEGER NOT NULL REFERENCES location(id),
+  user_id INTEGER NOT NULL REFERENCES user(id),
   timestamp TIMESTAMP NOT NULL,
   density REAL NOT NULL
 );
