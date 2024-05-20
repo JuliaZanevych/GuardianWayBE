@@ -124,16 +124,15 @@ def init_data_processing_hub(socketio):
 def handle_detection_batch():
     data = request.get_json()
     print(data)
-    nearest_neighbors = Location.nearest_neighbors(
-        [(element['location']['longitude'], element['location']['latitude']) for element in data['detections']])
 
-    for index,detection in enumerate(data['detections']):
+    for index, detection in enumerate(data['detections']):
         _object = Object.query.filter_by(id=detection['object_id']).first()
         if not _object:
             print('No Object!')
             return f'Unknown Object with id {detection["object_id"]}', 404
 
-        nearest_location = nearest_neighbors[index]
+        nearest_location = Location.nearest(detection['location']['longitude'],
+                                            detection['location']['latitude'], radius=5)
         if not nearest_location:
             nearest_location = Location(
                 latitude=detection['location']['latitude'],
